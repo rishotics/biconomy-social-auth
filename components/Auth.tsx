@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
-import SocialLogin from '@biconomy/web3-auth'
+// import SocialLogin from '@biconomy/web3-auth'
+import SocialLogin from './web3-auth/src/SocialLogin'
 import { ChainId } from '@biconomy/core-types'
 import { ethers } from 'ethers'
 import SmartAccount from '@biconomy/smart-account'
+import { Banana, Chains} from '@rize-labs/banana-wallet-sdk'
 import { css } from '@emotion/css'
 
 export default function Home() {
   const [smartAccount, setSmartAccount] = useState<SmartAccount | null>(null)
   const [interval, enableInterval] = useState(false)
   const sdkRef = useRef<SocialLogin | null>(null)
+  const [ bananaWallet, setBananaWallet ]  = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(false)
 
   useEffect(() => {
@@ -26,6 +29,7 @@ export default function Home() {
   async function login() {
     if (!sdkRef.current) {
       const socialLoginSDK = new SocialLogin()
+      
       const signature1 = await socialLoginSDK.whitelistUrl('https://biconomy-social-auth.vercel.app')
       await socialLoginSDK.init({
         chainId: ethers.utils.hexValue(ChainId.POLYGON_MAINNET),
@@ -44,6 +48,24 @@ export default function Home() {
     }
   }
 
+  async function bananaLogin() {
+    // if (!sdkRef.current) {
+    //   const socialLoginSDK = new SocialLogin()
+      
+    //   const signature1 = await socialLoginSDK.whitelistUrl('https://biconomy-social-auth.vercel.app')
+    //   await socialLoginSDK.init({
+    //     chainId: ethers.utils.hexValue(ChainId.POLYGON_MAINNET),
+    //     whitelistUrls: {
+    //       'https://biconomy-social-auth.vercel.app': signature1,
+    //     }
+    //   })
+    //   sdkRef.current = socialLoginSDK
+    // }
+   
+      setupSmartAccountBanana()
+    
+  }
+
   async function setupSmartAccount() {
     if (!sdkRef?.current?.provider) return
     sdkRef.current.hideWallet()
@@ -55,6 +77,26 @@ export default function Home() {
       const smartAccount = new SmartAccount(web3Provider, {
         activeNetworkId: ChainId.POLYGON_MAINNET,
         supportedNetworksIds: [ChainId.POLYGON_MAINNET],
+      })
+      await smartAccount.init()
+      setSmartAccount(smartAccount)
+      setLoading(false)
+    } catch (err) {
+      console.log('error setting up smart account... ', err)
+    }
+  }
+
+  async function setupSmartAccountBanana() {
+    setLoading(true);
+    const bananaLogin = new Banana(Chains.mumbai);
+    const bananaW = await bananaLogin.createWallet();
+    // setBananaWallet(bananaW);
+    const web3Provider = await bananaW.getSigner();
+
+    try {
+      const smartAccount = new SmartAccount(web3Provider, {
+        activeNetworkId: ChainId.POLYGON_MUMBAI,
+        supportedNetworksIds: [ChainId.POLYGON_MUMBAI],
       })
       await smartAccount.init()
       setSmartAccount(smartAccount)
@@ -82,6 +124,10 @@ export default function Home() {
         !smartAccount && !loading && <button className={buttonStyle} onClick={login}>Login</button>
       }
       {
+        !smartAccount && !loading && <button className={buttonStyle} onClick={bananaLogin}>Login with Rainbow</button>
+      }
+
+      {
         loading && <p>Loading account details...</p>
       }
       {
@@ -93,6 +139,8 @@ export default function Home() {
           </div>
         )
       }
+
+      
     </div>
   )
 }
