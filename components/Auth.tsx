@@ -6,6 +6,7 @@ import { ethers } from 'ethers'
 import SmartAccount from '@biconomy/smart-account'
 import { Banana, Chains} from '@rize-labs/banana-wallet-sdk'
 import { css } from '@emotion/css'
+import { SampleAbi } from "./abi";
 
 export default function Home() {
   const [smartAccount, setSmartAccount] = useState<SmartAccount | null>(null)
@@ -106,6 +107,25 @@ export default function Home() {
     }
   }
 
+  const makeTransaction = async () => {
+    if (!smartAccount) return;
+    const tx = {
+      gasLimit: "0x55555",
+      to: "0xCB8a3Ca479aa171aE895A5D2215A9115D261A566",
+      value: ethers.utils.parseEther("0.00001"),
+      data: new ethers.utils.Interface(SampleAbi).encodeFunctionData(
+        "stake",
+        []
+      ),
+    };
+    try{
+      const tx1 = await smartAccount.sendTransaction({transaction: tx})
+      console.log(tx1);
+    } catch(err) {
+      console.log("error in transaction", err);
+    }
+  }
+
   const logout = async () => {
     if (!sdkRef.current) {
       console.error('Web3Modal not initialized.')
@@ -138,6 +158,9 @@ export default function Home() {
             <button className={buttonStyle} onClick={logout}>Logout</button>
           </div>
         )
+      }
+      {
+        !!smartAccount && <button className={buttonStyle} onClick={makeTransaction}>Make Txn</button>
       }
 
       
